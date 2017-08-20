@@ -3,7 +3,6 @@ import time
 
 #Create function for dictionaries
 def populate_dict(MovieLens_file, movie_dict, user_dict):
-  #Initialize data to be collected
   line_count = 0
   user_count = 0
   movie_count = 0
@@ -11,15 +10,12 @@ def populate_dict(MovieLens_file, movie_dict, user_dict):
   for line in MovieLens_file:
     line_count += 1
     field = line.split()
-    user_id = field[0]
-    movie_id = field[1]
-    movie_rating = int(field[2])
+    user_id, movie_id, movie_rating = field[0], field[1], int(field[2])
   
     #Populate dictionary with user id keys and a dictionary for ratings as a value
     if user_id not in user_dict:
       user_count += 1
-      ratings_dict = {}
-      movie_rating_dict = {}
+      ratings_dict, movie_rating_dict = {}, {}
       movie_rating_dict[movie_id] = movie_rating
     
       ratings_dict["ratings_total"] = movie_rating
@@ -40,10 +36,10 @@ def populate_dict(MovieLens_file, movie_dict, user_dict):
     else:
       movie_dict[movie_id].add(user_id)
 
+  user_dict = average_rating_per_user(user_dict)
+
   #Summarize file data to terminal
   print "\nRead %s lines with total of %s movies and %s users" % (line_count, movie_count, user_count)
-
-  user_dict = average_rating_per_user(user_dict)
 
 #Create functions for similarities equation
 #Create function to normalize values
@@ -66,28 +62,24 @@ def mean_difference(movieid_1, movieid_2, user_match):
 
 #Create function to calculate denominator
 def mean_squared_diff(movie_1, movie_2, user_match):
-  sum_squared_diff_movie_1 = 0
-  sum_squared_diff_movie_2 = 0 
+  sum_squared_diff_movie_1, sum_squared_diff_movie_2 = 0, 0 
   
   for user in user_match:
     sum_squared_diff_movie_1 +=  float((user_dict[user]["movie_ratings"][movie_1] - user_dict[user]["ratings_average"]) ** 2.0)
     sum_squared_diff_movie_2 += float((user_dict[user]["movie_ratings"][movie_2] - user_dict[user]["ratings_average"]) ** 2.0)
  
-  mean_squared_diff = float((sum_squared_diff_movie_1 * sum_squared_diff_movie_2) ** (.5))   
-  return mean_squared_diff
+  return float((sum_squared_diff_movie_1 * sum_squared_diff_movie_2) ** (.5))   
 
 #Create similarity function
 def similarity(movie_1, movie_2, user_match):
-  denominator = mean_squared_diff(movie_1, movie_2, user_match)
-  if denominator == 0:
-    denominator = float(1.e-6) 
-  similarity = float(mean_difference(movie_1, movie_2, user_match)) / denominator
-  return similarity
+  if mean_squared_diff(movie_1, movie_2, user_match) == 0:
+    return float(mean_difference(movie_1, movie_2, user_match)) / float(1.e-6) 
+  else:
+    return float(mean_difference(movie_1, movie_2, user_match)) / mean_squared_diff(movie_1, movie_2, user_match)
 
 #Analyze the command line arguments and setup the corresponding parameters
 if len(sys.argv) < 3:
-  print "Usage:"
-  print "  python %s <MovieLens file> <similarities file> [user thresh (default = 5)]"
+  print "Usage: \n python %s <MovieLens file> <similarities file> [user thresh (default = 5)]"
   exit()
 
 MovieLens_file_name = sys.argv[1]
@@ -111,8 +103,7 @@ MovieLens_file = open(MovieLens_file_name)
 similarities_file = open(similarities_file_name, "w")
 
 #Create dictionaries
-movie_dict = {}
-user_dict = {}
+movie_dict, user_dict = {}, {}
 
 populate_dict(MovieLens_file, movie_dict, user_dict)
 
